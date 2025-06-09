@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes | NEOFI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="topnav">
+        <img src="Captura de tela 2025-06-06 155009.png" class="nav-logo" alt="Logo NEOFI">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="clientes.html" class="active">Clientes</a>
+        <a href="operacoes.html">Estratégias</a>
+        <a href="index.html" class="logout">Sair</a>
+    </nav>
+    <div class="clientes-container">
+        <h1>Lista de Clientes</h1>
+        <div style="margin-bottom: 18px; text-align: right;">
+            <input type="text" id="busca-cpf" placeholder="Buscar por CPF/CNPJ" style="padding:8px; border-radius:6px; border:1px solid #ccc; width:220px;">
+        </div>
+        <table class="clientes-table" id="clientes-table">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>CPF/CNPJ</th>
+                    <th>Telefone</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Data de Entrada</th>
+                    <th>Última Mov.</th>
+                    <th>Ver Operação</th>
+                </tr>
+            </thead>
+            <tbody id="clientes-tbody">
+                <!-- Conteúdo dinâmico -->
+            </tbody>
+        </table>
+        <button class="add-btn" onclick="abrirModalCliente()">Adicionar Novo Cliente</button>
+    </div>
+    <div id="modal-cliente" class="modal-cliente-bg" style="display:none;">
+        <div class="modal-cliente">
+            <h2>Novo Cliente</h2>
+            <form id="form-novo-cliente" onsubmit="salvarNovoCliente(event)">
+                <input type="text" id="novo-nome" placeholder="Nome" required style="width:90%;padding:10px;margin:10px 0;border:1px solid #ccc;border-radius:6px;font-size:1em;">
+                <div style="position:relative;width:90%;margin:10px 0;">
+                    <input type="text" id="novo-cpf" placeholder="CPF/CNPJ" maxlength="18" required onfocus="mostrarTipoDocDropdown()" oninput="formatarInputDoc()" style="width:100%;padding:10px 36px 10px 10px;border:1px solid #ccc;border-radius:6px;font-size:1em;color:#222;appearance:none;">
+                    <span class="seta-dropdown" onclick="mostrarTipoDocDropdown()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:auto;cursor:pointer;font-size:1.2em;color:#bbb;">&#9662;</span>
+                    <div id="tipo-doc-dropdown" style="display:none;position:absolute;top:44px;left:0;width:100%;background:#fff;border:1px solid #eee;border-radius:6px;z-index:20;box-shadow:0 4px 16px rgba(0,0,0,0.10);">
+                        <button type="button" onclick="selecionarTipoDoc('cpf', event)" style="width:100%;padding:10px 0;border:none;background:none;font-size:1em;cursor:pointer;">CPF</button>
+                        <button type="button" onclick="selecionarTipoDoc('cnpj', event)" style="width:100%;padding:10px 0;border:none;background:none;font-size:1em;cursor:pointer;">CNPJ</button>
+                    </div>
+                </div>
+                <input type="hidden" id="tipo-doc" value="cpf">
+                <input type="text" id="novo-telefone" placeholder="Telefone (com DDD)" style="width:90%;padding:10px;margin:10px 0;border:1px solid #ccc;border-radius:6px;font-size:1em;" oninput="formatarTelefone(this)">
+                <small style="color:#888;display:block;margin-top:-8px;margin-bottom:8px;text-align:left;width:90%;">Informe o telefone com DDD. Ex: (11) 91234-5678</small>
+                <input type="email" id="novo-email" placeholder="Email" style="width:90%;padding:10px;margin:10px 0;border:1px solid #ccc;border-radius:6px;font-size:1em;">
+                <select id="novo-status" required style="width:90%;padding:10px;margin:10px 0;border:1px solid #ccc;border-radius:6px;font-size:1em;">
+                    <option value="Ativo">Ativo</option>
+                    <option value="Inativo">Inativo</option>
+                </select>
+                <button type="submit" class="add-btn">Salvar</button>
+                <button type="button" class="add-btn" style="background:#dc3545;color:#fff;" onclick="fecharModalCliente()">Cancelar</button>
+            </form>
+        </div>
+    </div>
+    <script>
+    // Banco de dados local de clientes
+    const CLIENTES_KEY = 'clientes_neofi';
+    function getClientes() {
+        const data = localStorage.getItem(CLIENTES_KEY);
+        if (data) return JSON.parse(data);
+        // Cliente inicial
+        return [{nome: 'Luciana & Gustavo', cpf: '000.000.000-00', status: 'Ativo'}];
+    }
+    function setClientes(clientes) {
+        localStorage.setItem(CLIENTES_KEY, JSON.stringify(clientes));
+    }
+    function formatarNome(nome) {
+        return nome.split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+    }
+    function formatarCpfCnpj(valor) {
+        const v = valor.replace(/\D/g, '');
+        if (v.length === 11) {
+            // CPF: 000.000.000-00
+            return v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        } else if (v.length === 14) {
+            // CNPJ: 00.000.000/0000-00
+            return v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+        }
+        return valor;
+    }
+    function validarCpfCnpj(valor) {
+        const v = valor.replace(/\D/g, '');
+        if (v.length === 11) {
+            // Validação CPF
+            let soma = 0;
+            let resto;
+            if (v === "00000000000") return false;
+            for (let i=1; i<=9; i++) soma += parseInt(v.substring(i-1, i)) * (11 - i);
+            resto = (soma * 10) % 11;
+            if ((resto === 10) || (resto === 11)) resto = 0;
+            if (resto !== parseInt(v.substring(9, 10))) return false;
+            soma = 0;
+            for (let i=1; i<=10; i++) soma += parseInt(v.substring(i-1, i)) * (12 - i);
+            resto = (soma * 10) % 11;
+            if ((resto === 10) || (resto === 11)) resto = 0;
+            if (resto !== parseInt(v.substring(10, 11))) return false;
+            return true;
+        } else if (v.length === 14) {
+            // Validação CNPJ
+            let tamanho = v.length - 2;
+            let numeros = v.substring(0, tamanho);
+            let digitos = v.substring(tamanho);
+            let soma = 0;
+            let pos = tamanho - 7;
+            for (let i = tamanho; i >= 1; i--) {
+                soma += numeros.charAt(tamanho - i) * pos--;
+                if (pos < 2) pos = 9;
+            }
+            let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+            if (resultado !== parseInt(digitos.charAt(0))) return false;
+            tamanho = tamanho + 1;
+            numeros = v.substring(0, tamanho);
+            soma = 0;
+            pos = tamanho - 7;
+            for (let i = tamanho; i >= 1; i--) {
+                soma += numeros.charAt(tamanho - i) * pos--;
+                if (pos < 2) pos = 9;
+            }
+            resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+            if (resultado !== parseInt(digitos.charAt(1))) return false;
+            return true;
+        }
+        return false;
+    }
+    function renderClientes(filtroCpf = '') {
+        const clientes = getClientes();
+        const tbody = document.getElementById('clientes-tbody');
+        tbody.innerHTML = '';
+        clientes.forEach((c, i) => {
+            const cpfFormatado = formatarCpfCnpj(c.cpf);
+            let dataEntrada = c.dataEntrada ? formatarDataEntrada(c.dataEntrada) : '-';
+            let ultimaMov = c.ultimaMov ? formatarDataEntrada(c.ultimaMov) : '-';
+            let telefone = c.telefone || '-';
+            let email = c.email || '-';
+            if (!filtroCpf || cpfFormatado.replace(/\D/g, '').includes(filtroCpf.replace(/\D/g, ''))) {
+                tbody.innerHTML += `<tr><td>${formatarNome(c.nome)}</td><td>${cpfFormatado}</td><td>${telefone}</td><td>${email}</td><td>${c.status}</td><td>${dataEntrada}</td><td>${ultimaMov}</td><td style='text-align:center;'><button onclick='verOperacoesCliente(${i})' title='Ver Operações' style='background:none;border:none;cursor:pointer;'><svg width='22' height='22' viewBox='0 0 24 24'><circle cx='11' cy='11' r='7' fill='#e8f8ff' stroke='#1a2233' stroke-width='2'/><line x1='16' y1='16' x2='21' y2='21' stroke='#764ba2' stroke-width='2' stroke-linecap='round'/></svg></button></td></tr>`;
+            }
+        });
+    }
+    function abrirModalCliente() {
+        document.getElementById('modal-cliente').style.display = 'flex';
+    }
+    function fecharModalCliente() {
+        document.getElementById('modal-cliente').style.display = 'none';
+        document.getElementById('form-novo-cliente').reset();
+        clienteEditandoIdx = null;
+        document.getElementById('novo-cpf').placeholder = 'CPF/CNPJ';
+        document.getElementById('novo-cpf').maxLength = 14;
+        document.getElementById('tipo-doc').value = 'cpf';
+        document.getElementById('tipo-doc-dropdown').style.display = 'none';
+    }
+    // Adicionar variável global para controlar edição
+    let clienteEditandoIdx = null;
+    function formatarInputDoc() {
+        const tipo = document.getElementById('tipo-doc').value;
+        let v = document.getElementById('novo-cpf').value.replace(/\D/g, '');
+        if (tipo === 'cpf') {
+            if (v.length > 11) v = v.slice(0,11);
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+        } else {
+            if (v.length > 14) v = v.slice(0,14);
+            v = v.replace(/(\d{2})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d)/, '$1/$2');
+            v = v.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+        }
+        document.getElementById('novo-cpf').value = v;
+    }
+    function formatarDataEntrada(data) {
+        const d = new Date(data);
+        if (isNaN(d)) return '-';
+        return d.toLocaleDateString('pt-BR');
+    }
+    function formatarTelefone(input) {
+        let v = input.value.replace(/\D/g, '');
+        if (v.length > 11) v = v.slice(0, 11);
+        if (v.length > 0) v = '(' + v;
+        if (v.length > 3) v = v.slice(0, 3) + ') ' + v.slice(3);
+        if (v.length > 10) v = v.slice(0, 10) + '-' + v.slice(10);
+        else if (v.length > 9) v = v.slice(0, 9) + '-' + v.slice(9);
+        input.value = v;
+    }
+    function salvarNovoCliente(e) {
+        e.preventDefault();
+        const nome = document.getElementById('novo-nome').value;
+        const cpf = document.getElementById('novo-cpf').value;
+        const status = document.getElementById('novo-status').value;
+        const telefone = document.getElementById('novo-telefone').value;
+        const email = document.getElementById('novo-email').value;
+        if (!validarCpfCnpj(cpf)) {
+            alert('Por favor, informe um CPF ou CNPJ válido!');
+            return;
+        }
+        const clientes = getClientes();
+        if (clienteEditandoIdx !== null) {
+            const dataEntrada = clientes[clienteEditandoIdx].dataEntrada || new Date().toISOString();
+            clientes[clienteEditandoIdx] = {nome, cpf, status, telefone, email, dataEntrada, ultimaMov: new Date().toISOString()};
+            clienteEditandoIdx = null;
+        } else {
+            clientes.push({nome, cpf, status, telefone, email, dataEntrada: new Date().toISOString(), ultimaMov: new Date().toISOString()});
+        }
+        setClientes(clientes);
+        renderClientes();
+        fecharModalCliente();
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        renderClientes();
+        document.getElementById('busca-cpf').addEventListener('input', function() {
+            renderClientes(this.value);
+        });
+    });
+    // Função para abrir menu popup
+    function abrirMenuCliente(event, idx) {
+        event.stopPropagation();
+        fecharTodosMenus();
+        const btn = event.target;
+        const menu = document.getElementById('menu-popup-' + idx);
+        const rect = btn.getBoundingClientRect();
+        menu.style.display = 'block';
+        menu.style.left = (rect.left - btn.offsetParent.getBoundingClientRect().left + btn.offsetWidth + 8) + 'px';
+        menu.style.top = (rect.top - btn.offsetParent.getBoundingClientRect().top - 8) + 'px';
+    }
+    function fecharTodosMenus() {
+        document.querySelectorAll('.menu-popup').forEach(m => m.style.display = 'none');
+    }
+    document.body.addEventListener('click', fecharTodosMenus);
+    // Funções editar/remover (placeholders)
+    function editarCliente(idx) {
+        const clientes = getClientes();
+        const c = clientes[idx];
+        document.getElementById('novo-nome').value = c.nome;
+        let tipo = 'cpf';
+        const v = c.cpf.replace(/\D/g, '');
+        if (v.length === 14) tipo = 'cnpj';
+        document.getElementById('tipo-doc').value = tipo;
+        document.getElementById('novo-cpf').placeholder = tipo === 'cpf' ? 'CPF' : 'CNPJ';
+        document.getElementById('novo-cpf').maxLength = tipo === 'cpf' ? 14 : 18;
+        document.getElementById('novo-cpf').value = c.cpf;
+        document.getElementById('novo-telefone').value = c.telefone || '';
+        document.getElementById('novo-email').value = c.email || '';
+        document.getElementById('novo-status').value = c.status;
+        clienteEditandoIdx = idx;
+        abrirModalCliente();
+        fecharTodosMenus();
+    }
+    function removerCliente(idx) {
+        if(confirm('Tem certeza que deseja remover este cliente?')) {
+            const clientes = getClientes();
+            clientes.splice(idx,1);
+            setClientes(clientes);
+            renderClientes();
+        }
+        fecharTodosMenus();
+    }
+    function mostrarTipoDocDropdown() {
+        document.getElementById('tipo-doc-dropdown').style.display = 'block';
+    }
+    function selecionarTipoDoc(tipo, event) {
+        if(event) event.stopPropagation();
+        document.getElementById('tipo-doc').value = tipo;
+        document.getElementById('tipo-doc-dropdown').style.display = 'none';
+        document.getElementById('novo-cpf').value = '';
+        document.getElementById('novo-cpf').placeholder = tipo === 'cpf' ? 'CPF' : 'CNPJ';
+        document.getElementById('novo-cpf').maxLength = tipo === 'cpf' ? 14 : 18;
+        document.getElementById('novo-cpf').focus();
+    }
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#tipo-doc-dropdown') && e.target.id !== 'novo-cpf') {
+            document.getElementById('tipo-doc-dropdown').style.display = 'none';
+        }
+    });
+    function verOperacoesCliente(idx) {
+        // Redireciona para relatorio-operacao-imobiliaria.html, passando o nome do cliente via query string
+        const clientes = getClientes();
+        const c = clientes[idx];
+        window.location.href = `relatorio-operacao-imobiliaria.html?cliente=${encodeURIComponent(c.nome)}`;
+    }
+    </script>
+    <style>
+    .menu-btn {
+        background: #ffe066;
+        color: #1a2233;
+        border: none;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 1.1em;
+        font-weight: bold;
+        cursor: pointer;
+        margin-left: 6px;
+    }
+    .menu-btn:hover {
+        background: #1a2233;
+        color: #fff;
+    }
+    .menu-popup {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+        padding: 8px 0;
+        min-width: 110px;
+        position: absolute;
+    }
+    .menu-popup button {
+        background: none;
+        border: none;
+        width: 100%;
+        text-align: left;
+        padding: 8px 16px;
+        font-size: 1em;
+        cursor: pointer;
+        color: #1a2233;
+        border-radius: 0;
+    }
+    .menu-popup button:hover {
+        background: #ffe066;
+    }
+    #novo-cpf::placeholder {
+        color: #bbb;
+        opacity: 1;
+    }
+    #tipo-doc-dropdown button:hover {
+        background: #ffe066;
+    }
+    .seta-dropdown {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: auto;
+        cursor: pointer;
+        font-size: 1.2em;
+        color: #bbb;
+        user-select: none;
+    }
+    #novo-cpf {
+        padding-right: 36px;
+    }
+    </style>
+</body>
+</html> 

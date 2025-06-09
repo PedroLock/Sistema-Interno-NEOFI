@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | NEOFI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-bg">
+    <div class="login-container">
+        <img src="Captura de tela 2025-06-06 155009.png" alt="Logo NEOFI" class="login-logo"/>
+        <h1 class="login-title">Acesse o sistema NEOFI</h1>
+        <form class="login-form" onsubmit="login(event)">
+            <input type="text" id="user" placeholder="Usuário ou E-mail" required>
+            <input type="password" id="pass" placeholder="Senha" required>
+            <button type="submit">Entrar</button>
+        </form>
+        <p class="login-footer">© 2025 neo.fi finance</p>
+    </div>
+    <script>
+        function login(e) {
+            e.preventDefault();
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html> 

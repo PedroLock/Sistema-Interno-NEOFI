@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | NEOFI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="topnav">
+        <img src="Captura de tela 2025-06-06 155009.png" class="nav-logo" alt="Logo NEOFI">
+        <a href="dashboard.html" class="active">Dashboard</a>
+        <a href="clientes.html">Clientes</a>
+        <a href="operacoes.html">Estratégias</a>
+        <a href="index.html" class="logout">Sair</a>
+    </nav>
+    <div class="dashboard-container">
+        <h1>Dashboard Geral</h1>
+        <div class="dashboard-cards">
+            <div class="dashboard-card">
+                <h3>Operações Ativas</h3>
+                <div class="dashboard-value" id="operacoes-ativas">0</div>
+            </div>
+            <div class="dashboard-card">
+                <h3>Volume de Crédito</h3>
+                <div class="dashboard-value" id="volume-credito">R$ 0,00</div>
+            </div>
+            <div class="dashboard-card">
+                <h3>Clientes Ativos</h3>
+                <div class="dashboard-value" id="clientes-ativos">0</div>
+            </div>
+        </div>
+        <div class="dashboard-alerts">
+            <h2>Alertas</h2>
+            <ul>
+                <li>Nenhum alerta crítico no momento.</li>
+            </ul>
+        </div>
+    </div>
+    <script>
+    // Pega clientes ativos do localStorage
+    function getClientesAtivos() {
+        const data = localStorage.getItem('clientes_neofi');
+        if (!data) return 0;
+        try {
+            const clientes = JSON.parse(data);
+            return clientes.filter(c => c.status === 'Ativo').length;
+        } catch {
+            return 0;
+        }
+    }
+    // Pega operações ativas e volume de crédito da tabela de operacoes.html
+    function getOperacoesAtivas() {
+        // Exemplo: pode ser adaptado para buscar de um backend futuramente
+        // Aqui, busca da tabela fixa do HTML
+        const operacoes = [
+            {cliente: 'Luciana & Gustavo', tipo: 'Renda Fixa Alavancada', status: 'Ativa', valor: 'R$ 600.000,00'},
+            {cliente: 'Exemplo Cliente', tipo: 'Crédito com Hold em BTC', status: 'Em Análise', valor: 'R$ 200.000,00'}
+        ];
+        let total = 0;
+        let count = 0;
+        operacoes.forEach(op => {
+            if (op.status === 'Ativa') {
+                count++;
+                total += parseFloat(op.valor.replace(/[^\d,]/g, '').replace('.', '').replace(',', '.'));
+            }
+        });
+        return {count, total};
+    }
+    function formatarMoeda(valor) {
+        return valor.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('clientes-ativos').textContent = getClientesAtivos();
+        const op = getOperacoesAtivas();
+        document.getElementById('operacoes-ativas').textContent = op.count;
+        document.getElementById('volume-credito').textContent = formatarMoeda(op.total);
+    });
+    </script>
+</body>
+</html> 
