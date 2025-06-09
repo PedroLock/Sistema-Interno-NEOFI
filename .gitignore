@@ -1,0 +1,6 @@
+   frontend/node_modules/
+   backend/venv/
+   frontend/build/
+   *.log
+   *.tmp
+   .DS_Store
