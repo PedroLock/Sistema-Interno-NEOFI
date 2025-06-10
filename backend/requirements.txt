@@ -7,3 +7,4 @@ mysql-connector-python
 passlib[bcrypt]
 python-jose 
 pymongo
+pydantic[email]
