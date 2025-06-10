@@ -3,4 +3,4 @@
    frontend/build/
    *.log
    *.tmp
-   .DS_Store
+   .DS_Store"backend/__pycache__/" 
