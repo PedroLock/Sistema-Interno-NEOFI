@@ -6,3 +6,4 @@ python-dotenv
 mysql-connector-python
 passlib[bcrypt]
 python-jose 
+pymongo
