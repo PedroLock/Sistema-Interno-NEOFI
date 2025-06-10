@@ -147,4 +147,9 @@ def remover_operacao(operacao_id: str, current_user: dict = Depends(get_current_
     res = db.operacoes.delete_one({"_id": ObjectId(operacao_id)})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Operação não encontrada")
-    return {"msg": "Operação removida"} 
+    return {"msg": "Operação removida"}
+
+@app.delete("/apagar_todos_clientes")
+def apagar_todos_clientes(current_user: dict = Depends(get_current_user)):
+    res = db.clientes.delete_many({})
+    return {"msg": f"{res.deleted_count} clientes removidos"} 
