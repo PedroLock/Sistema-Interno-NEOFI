@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
@@ -6,6 +6,8 @@ from db import db
 from models import ClienteCreate, ClienteUpdate, OperacaoCreate, OperacaoUpdate
 from bson import ObjectId
 from datetime import datetime
+from auth import authenticate_user, create_access_token, get_current_user
+from fastapi.security import OAuth2PasswordRequestForm
 
 load_dotenv()
 
@@ -48,15 +50,23 @@ def operacao_helper(operacao) -> dict:
 def read_root():
     return {"msg": "API NEOFI rodando!"}
 
+@app.post("/login", tags=["auth"])
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=400, detail="Usuário ou senha incorretos")
+    access_token = create_access_token(data={"sub": user["username"]})
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.get("/clientes")
-def listar_clientes():
+def listar_clientes(current_user: dict = Depends(get_current_user)):
     clientes = []
     for c in db.clientes.find():
         clientes.append(cliente_helper(c))
     return clientes
 
 @app.post("/clientes")
-def criar_cliente(cliente: ClienteCreate):
+def criar_cliente(cliente: ClienteCreate, current_user: dict = Depends(get_current_user)):
     # Verifica duplicidade de CPF/CNPJ
     cpf_cnpj_limpo = ''.join(filter(str.isdigit, cliente.cpf_cnpj))
     existente = db.clientes.find_one({
@@ -77,14 +87,14 @@ def criar_cliente(cliente: ClienteCreate):
     return cliente_helper(novo)
 
 @app.get("/clientes/{cliente_id}")
-def obter_cliente(cliente_id: str):
+def obter_cliente(cliente_id: str, current_user: dict = Depends(get_current_user)):
     c = db.clientes.find_one({"_id": ObjectId(cliente_id)})
     if not c:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     return cliente_helper(c)
 
 @app.put("/clientes/{cliente_id}")
-def atualizar_cliente(cliente_id: str, cliente: ClienteUpdate):
+def atualizar_cliente(cliente_id: str, cliente: ClienteUpdate, current_user: dict = Depends(get_current_user)):
     data = cliente.dict(exclude_unset=True)
     data["ultima_movimentacao"] = datetime.utcnow()
     res = db.clientes.update_one({"_id": ObjectId(cliente_id)}, {"$set": data})
@@ -94,21 +104,21 @@ def atualizar_cliente(cliente_id: str, cliente: ClienteUpdate):
     return cliente_helper(c)
 
 @app.delete("/clientes/{cliente_id}")
-def remover_cliente(cliente_id: str):
+def remover_cliente(cliente_id: str, current_user: dict = Depends(get_current_user)):
     res = db.clientes.delete_one({"_id": ObjectId(cliente_id)})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     return {"msg": "Cliente removido"}
 
 @app.get("/operacoes")
-def listar_operacoes():
+def listar_operacoes(current_user: dict = Depends(get_current_user)):
     operacoes = []
     for o in db.operacoes.find():
         operacoes.append(operacao_helper(o))
     return operacoes
 
 @app.post("/operacoes")
-def criar_operacao(operacao: OperacaoCreate):
+def criar_operacao(operacao: OperacaoCreate, current_user: dict = Depends(get_current_user)):
     data = operacao.dict()
     data["cliente_id"] = ObjectId(data["cliente_id"])
     data["data_inicio"] = data.get("data_inicio") or datetime.utcnow()
@@ -117,14 +127,14 @@ def criar_operacao(operacao: OperacaoCreate):
     return operacao_helper(novo)
 
 @app.get("/operacoes/{operacao_id}")
-def obter_operacao(operacao_id: str):
+def obter_operacao(operacao_id: str, current_user: dict = Depends(get_current_user)):
     o = db.operacoes.find_one({"_id": ObjectId(operacao_id)})
     if not o:
         raise HTTPException(status_code=404, detail="Operação não encontrada")
     return operacao_helper(o)
 
 @app.put("/operacoes/{operacao_id}")
-def atualizar_operacao(operacao_id: str, operacao: OperacaoUpdate):
+def atualizar_operacao(operacao_id: str, operacao: OperacaoUpdate, current_user: dict = Depends(get_current_user)):
     data = operacao.dict(exclude_unset=True)
     res = db.operacoes.update_one({"_id": ObjectId(operacao_id)}, {"$set": data})
     if res.modified_count == 0:
@@ -133,7 +143,7 @@ def atualizar_operacao(operacao_id: str, operacao: OperacaoUpdate):
     return operacao_helper(o)
 
 @app.delete("/operacoes/{operacao_id}")
-def remover_operacao(operacao_id: str):
+def remover_operacao(operacao_id: str, current_user: dict = Depends(get_current_user)):
     res = db.operacoes.delete_one({"_id": ObjectId(operacao_id)})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Operação não encontrada")
