@@ -16,10 +16,14 @@ function Operacoes() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
-    axios.get('http://localhost:8000/operacoes')
+    axios.get('https://sistema-interno-neofi-nj71.onrender.com/operacoes', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('neofi_token')}` }
+    })
       .then(res => setOperacoes(res.data))
       .catch(() => setOperacoes([]));
-    axios.get(`http://localhost:8000/clientes/${clienteId}`)
+    axios.get(`https://sistema-interno-neofi-nj71.onrender.com/clientes/${clienteId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('neofi_token')}` }
+    })
       .then(res => setCliente(res.data))
       .catch(() => setCliente(null));
   }, [clienteId]);
@@ -43,17 +47,21 @@ function Operacoes() {
 
   const handleSalvarOp = async () => {
     try {
-      await axios.post('http://localhost:8000/operacoes', {
+      await axios.post('https://sistema-interno-neofi-nj71.onrender.com/operacoes', {
         ...novoOp,
         tipo: novoTipo,
         cliente_id: clienteId,
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('neofi_token')}` }
       });
       setSnackbar({ open: true, message: 'Operação cadastrada com sucesso!', severity: 'success' });
       setOpenModal(false);
       setNovoTipo('');
       setNovoOp({ valor: '', status: 'Pendente', data_inicio: '', data_fim: '', observacao: '' });
       // Atualiza lista
-      axios.get('http://localhost:8000/operacoes')
+      axios.get('https://sistema-interno-neofi-nj71.onrender.com/operacoes', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('neofi_token')}` }
+      })
         .then(res => setOperacoes(res.data))
         .catch(() => setOperacoes([]));
     } catch {

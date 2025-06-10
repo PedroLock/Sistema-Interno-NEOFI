@@ -35,7 +35,9 @@ function Clientes() {
   }, []);
 
   const fetchClientes = () => {
-    axios.get('http://localhost:8000/clientes')
+    axios.get('https://sistema-interno-neofi-nj71.onrender.com/clientes', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('neofi_token')}` }
+    })
       .then(response => setClientes(response.data))
       .catch(error => console.error('Erro ao buscar clientes:', error));
   };
@@ -103,10 +105,14 @@ function Clientes() {
     }
     try {
       if (editando && selectedCliente) {
-        await axios.put(`http://localhost:8000/clientes/${selectedCliente.id}`, novoCliente);
+        await axios.put(`https://sistema-interno-neofi-nj71.onrender.com/clientes/${selectedCliente.id}`, novoCliente, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('neofi_token')}` }
+        });
         setSnackbar({ open: true, message: 'Cliente atualizado com sucesso!', severity: 'success' });
       } else {
-        await axios.post('http://localhost:8000/clientes', novoCliente);
+        await axios.post('https://sistema-interno-neofi-nj71.onrender.com/clientes', novoCliente, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('neofi_token')}` }
+        });
         setSnackbar({ open: true, message: 'Cliente cadastrado com sucesso!', severity: 'success' });
       }
       setOpenModal(false);
@@ -135,7 +141,9 @@ function Clientes() {
   const handleConfirmDelete = async () => {
     if (selectedCliente) {
       try {
-        await axios.delete(`http://localhost:8000/clientes/${selectedCliente.id}`);
+        await axios.delete(`https://sistema-interno-neofi-nj71.onrender.com/clientes/${selectedCliente.id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('neofi_token')}` }
+        });
         setSnackbar({ open: true, message: 'Cliente removido com sucesso!', severity: 'success' });
         setConfirmDelete(false);
         setSelectedCliente(null);

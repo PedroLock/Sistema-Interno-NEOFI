@@ -13,7 +13,7 @@ function Topbar() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('neofi_auth');
+    localStorage.removeItem('neofi_token');
     navigate('/');
   };
 

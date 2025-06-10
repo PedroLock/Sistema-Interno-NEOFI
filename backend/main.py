@@ -6,7 +6,7 @@ from db import db
 from models import ClienteCreate, ClienteUpdate, OperacaoCreate, OperacaoUpdate
 from bson import ObjectId
 from datetime import datetime
-from auth import authenticate_user, create_access_token, get_current_user
+from auth_jwt import authenticate_user, create_access_token, get_current_user
 from fastapi.security import OAuth2PasswordRequestForm
 
 load_dotenv()

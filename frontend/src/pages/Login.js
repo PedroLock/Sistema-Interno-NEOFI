@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Button, TextField, Typography, Paper, Alert, IconButton, InputAdornment } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 function Login() {
   const [user, setUser] = useState('');
@@ -10,13 +11,19 @@ function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (user === 'neofi' && pass === 'dívidainteligente') {
+    try {
+      const response = await axios.post('https://sistema-interno-neofi-nj71.onrender.com/login', new URLSearchParams({
+        username: user,
+        password: pass
+      }), {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      localStorage.setItem('neofi_token', response.data.access_token);
       setError('');
-      localStorage.setItem('neofi_auth', 'true');
       navigate('/dashboard');
-    } else {
+    } catch (err) {
       setError('Usuário ou senha incorretos!');
     }
   };

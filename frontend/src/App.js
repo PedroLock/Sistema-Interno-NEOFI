@@ -21,7 +21,7 @@ const theme = createTheme({
 });
 
 function isAuthenticated() {
-  return localStorage.getItem('neofi_auth') === 'true';
+  return !!localStorage.getItem('neofi_token');
 }
 
 function PrivateRoute({ children }) {
